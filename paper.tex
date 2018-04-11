@@ -299,25 +299,374 @@ BAND Protocol aims to standardize the way community, marketplace, products and s
     \label{fig:bandlayer}
 \end{figure}
 
-\subsection{Community Token}
+\newpage
+\subsection{Community Token} \label{sec:community-token}
+Community Token is a personalized token used to curate a specific community. It has three utilities within the issued community:
 
-\subsubsection{Value-Supply Equation}
+\begin{enumerate}
+\setlength\itemsep{0em}
+\item Serve as primary currency and unit of account to purchase products and services
+\item Access to subscription services (e.g. unlimited music streaming, discount voucher)
+\item Create personal attention curation market by voting with their tokens
+\end{enumerate}
+Community Token can be issued via a standard Community Token Issuance Contract with customized parameter set by the Community Manager. Once the contract is launched, anyone can purchase newly issued Community Token by bonding their BAND Token with the contract. The Community Token can then be used within the specific community. Community Token can also be sent back to the Issuance Contract to redeem back collateralized Band Token. The price is determined by predefined bonding curve function set by Community Manager which is positively correlated with total circulating supply of Community Token. Note that there is no secondary market for Community Token. There are three parameters that the creator must specify:
 
-\subsubsection{Maximum Supply}
+\begin{itemize}
+\setlength\itemsep{0em}
+\item Value-Supply equation
+\item Maximum supply
+\item Price spread
+\end{itemize}
 
-\subsubsection{Price Spread}
+\subsubsection{Value-Supply Equation} This equation describes the relationship between the Community Token's total supply and its total value in terms of BAND token. In other words, given the current supply $s$, $V(s)$ produces the total number BAND collateralized in the Community Token Contract. Notice that by defining this value-supply equation, one can easily derive the price of Community Token at the current total supply $P(s)$ as the derivative of the value-supply equation at the specific supply value:
+\bigbreak
+\begin{align*}
+P(s) &= \frac{d}{ds}V(s) & \text{; or in other words} \\
+V(s) &= \int_{0}^{s} P(s) ds
+\end{align*}
+
+The total price of buying $x$ Community Tokens at total supply $s$ is thus $V(s+x)-V(x)$, or $\frac{V(s+x)-V(x)}{x}$ per token on average. As an example, if the Community Manager would like to have the price-supply equation $P(s) = 2s + 10$, he must specify the on-chain value-supply equation $V(s) = s^2 + 10s$. If community member would like to buy 3 tokens when the current supply is 100, they must pay $V(103)-V(100) =639$ BAND, or 213 BAND per token. Notice that this is consistent with the price-supply equation and works even when a person wants to buy non-integral amount of Community Token.
+
+BAND protocol allows flexibility in the equation. Specifically, any equation that can be described in terms of recursive applications of common unary and binary expressions on the current total supply and constant numbers can be encoded on chain. The grammar of value-supply equation can be formalized as:
+\begin{align*}
+V \leftarrow
+\begin{cases}
+V \bigoplus V & \text{binary operation -- addition, subtraction, } \\
+& \text{multiplication, division, modulus, and exponentiation} \\
+\pm V & \text{unary operation -- negation, sine, and cosine} \\
+s & \text{current token supply} \\
+c & \text{integral constant}
+\end{cases}
+\end{align*}
+
+There are three major types of curve that should be useful at the initial stage of deployment.
+\paragraph{Monomial Curve} In this model, price is described as a monomial function in terms of total supply. Price of the Community Token positively correlates with its circulating supply. This encourages community curation and discourages selling. Note that this model is similar to what Bancor~\cite{bancorwhitepaper} offers. The following graph shows an example of a monomial curve with $P(s) = 2s$ and $V(s) = s^2$
+
+\begin{center}
+\begin{tikzpicture}
+\draw[->] (0,0) -- (3,0) node[right] {$s$};
+\draw[->] (0,0) -- (0,3) node[above] {$P(s)$};
+\draw[scale=0.3,domain=0:10,smooth,variable=\x,red] plot ({\x},{\x /5});
+\end{tikzpicture}
+\begin{tikzpicture}
+\draw[->] (0,0) -- (3,0) node[right] {$s$};
+\draw[->] (0,0) -- (0,3) node[above] {$V(s)$};
+\draw[scale=0.3,domain=0:10,smooth,variable=\x,blue] plot ({\x},{\x*\x / 10});
+\end{tikzpicture}
+\end{center}
+
+\paragraph{Polynomial Curve} This is an upgraded version from the normal monomial curve. In this model, we remove the restriction that $P(0) = 0$ on monomial curve, allowing the Community Manager to set the base price of the token at the cost of more complicating curve. The following graph shows an example of a polynomial curve with $P(s) = 3s^2 - 2s + 100$ and $V(s) = s^3 - s^2 + 100s$
+
+\begin{center}
+\begin{tikzpicture}
+\draw[->] (0,0) -- (3,0) node[right] {$s$};
+\draw[->] (0,0) -- (0,3) node[above] {$P(s)$};
+\draw[scale=0.3,domain=0:10,smooth,variable=\x,red] plot ({\x},{(3*\x*\x - 2 * \x + 100)/200});
+\end{tikzpicture}
+\begin{tikzpicture}
+\draw[->] (0,0) -- (3,0) node[right] {$s$};
+\draw[->] (0,0) -- (0,3) node[above] {$V(s)$};
+\draw[scale=0.3,domain=0:10,smooth,variable=\x,blue] plot ({\x},{(\x*\x*\x - \x*\x + 100*\x)/200});
+\end{tikzpicture}
+\end{center}
+
+\paragraph{Fixed Curve} In this model, the price simply does not correlate to the current supply. In other words, the total value is directly proportional the the current supply. This may seem silly at first glance, but it has the benefit of simplicity because the token always costs the same to buy. Community Manager may choose this pricing model and focus more on other curating aspects, such as subscription model (See~\cref{sec:subscription-model}. Community Manager can also choose to limit the maximum token supply (See~\cref{sec:max-supply}). Note that fixed price does not necessarily mean buy price equal to sell price (See~\cref{sec:px-spread}). The following graph shows a simple fixed curve with $P(s) = 1$ and $V(s) = s$.
+
+\begin{center}
+\begin{tikzpicture}
+\draw[->] (0,0) -- (3,0) node[right] {$s$};
+\draw[->] (0,0) -- (0,3) node[above] {$P(s)$};
+\draw[scale=0.3,domain=0:10,smooth,variable=\x,red] plot ({\x},{(1});
+\end{tikzpicture}
+\begin{tikzpicture}
+\draw[->] (0,0) -- (3,0) node[right] {$s$};
+\draw[->] (0,0) -- (0,3) node[above] {$V(s)$};
+\draw[scale=0.3,domain=0:10,smooth,variable=\x,blue] plot ({\x},{(\x});
+\end{tikzpicture}
+\end{center}
+
+Pricing strategy can involve complex mathematical expressions, including trigonometry functions and integer modulus. BAND protocol leaves room for flexibility and innovation as crypto communities continue to experiment with new bonding curve and develop new pricing strategy.
+
+
+\subsubsection{Maximum Supply} \label{sec:max-supply}
+Another parameter that Community Manager can specify is the total maximum supply of Community Token. This variable prevents the total number of Community Token issued by the contract to never go beyond the given value.
+
+\subsubsection{Price Spread} \label{sec:px-spread}
+In addition to the primary bonding curve equation, Community Manager is able to enforce the buy-sell price spread on the Community Token Contract. The protocol natively allows two different flavors of price spread during contract creation.
+
+\paragraph{Constant Spread} At any time, the price of selling 1 community token is lower than buying 1 community token by c BAND unit.
+\paragraph{Rational Spread} At any time, the price of selling 1 community token is lower than buying 1 community token by c percent.
+
+\paragraph{Pros of Price Spread}
+\begin{itemize}
+\setlength\itemsep{0em}
+\item Price spread discourages speculator and reduces pump-and-dump scheme
+\item Price spread can mitigate front-running problem to some degree
+\item Price spread gives Community Manager direct profit from buying and selling activities within the community
+\end{itemize}
+
+\paragraph{Cons of Price Spread}
+\begin{itemize}
+\setlength\itemsep{0em}
+\item Price spread may disincentivize risk-averse people from participating
+\end{itemize}
 
 \subsubsection{Purchase Flow}
+To purchase Community Token, a user sends a {\tt PURCHASE} transaction to the blockchain containing the Community Token contract address together with a signature certifying ownership of one or more BAND UTXOs. Upon completion, one will receive a new UTXO representing one's Community Tokens. The Community Token contract is also updated to reflect new total supply. Note that if the total amount of BAND UXTOs does not reach the required amount, the transaction will not be processed by the network. See~\cref{fig:purchase-community-token} for visual representation of a token purchasing event.
 
-\subsection{Product Token}
+\begin{figure}[!h]
+\centering
+\begin{tikzpicture}
+\node (alice-band-in) [utxo] {
+    owner = Alice \\
+    token = BAND \\
+    amount = 1000
+};
+
+\node (rock-before) [contract,below=2.5cm of alice-band-in] {
+    addr = 0x1234 \\
+    name = The Rock \\
+    manager = Rock \\
+    supply = 100 \\
+    eq = $s^2 + 10s$ \\
+    spread = None \\
+    max\_supply = None
+};
+
+\node (alice-band-out) [utxo, above right=-1.5cm and 3cm of alice-band-in] {
+    owner = Alice \\
+    token = BAND \\
+    amount = 576
+};
+
+\node (alice-rock-out) [utxo, below right=-1.5cm and 3cm of alice-band-in] {
+    owner = Alice \\
+    token = 0x1234 \\
+    amount = 2
+};
+
+\node (rock-after) [contract,right=3cm of rock-before] {
+    addr = 0x1234 \\
+    name = The Rock \\
+    manager = Rock \\
+    supply = 102 \\
+    eq = $s^2 + 10s$ \\
+    spread = None \\
+    max\_supply = None
+};
+
+\draw [arrow] (alice-band-in) -- (alice-band-out);
+\draw [arrow] (alice-band-in) -- (alice-rock-out);
+\draw [arrow] (rock-before) -- (rock-after);
+\end{tikzpicture}
+\caption{An action of purchasing 2 ``The Rock'' token by Alice when the current supply is 100. Alice's BAND UTXO gets destroyed and she gets 2 new UTXO, one for BAND ``change'' and one for ``The Rock'' token. The community token contract's total supply value increases by 2.}
+\label{fig:purchase-community-token}
+\end{figure}
+
+\subsection{Product Token} \label{sec:product-token}
+Product Tokens are on-chain indivisible tokens that represent digital assets or digital vouchers that can be claimed for specific real-world products and services as set by Community Manager. For example, a musician may issue Concert Ticket Tokens that represent the right to claim a specific concert ticket. A celebrity can similarly issue digital collectible as Product Token with extremely limited supply.
+
+Product Tokens can only be created by Community Manager who can customize parameters such as price, quantity, expiry date, sellability, etc. Price can either be fixed or can be issued with continuous bonding curve so dynamic demand and supply can dictate price. In the future, price can also be determined through auction for rare items.
+
+There are benefits of issuing products through a blockchain-based Product Tokens for both Community Manager and mass consumers:
+
+\paragraph{Extra Revenue} Community Manager can create extra revenue by selling new type of digital products such as scarce digital collectible (e.g. sticker packs, exclusive poster, animated gifs).
+
+\paragraph{Dynamic Pricing} Community Manager can maximize revenue for certain non-rivalrous goods by creating a dynamic price based on continuous bonding curve which leads to optimal price discovery.
+
+\paragraph{Liquidity Premium} Product Tokens can be easily traded in a global secondary market as there is a liquid market to trade products for specific community.
+
+\paragraph{Transparency} There is full transparency when selling Product Tokens in terms of price, quantity and the mechanism of which product tokens are sold. For example, limited ticket concert can be sold to lottery winners using an open-source algorithm that determines winners so there is no way insider can cheat. It is also impossible to create counterfeit items.
+
+\paragraph{Beneficiary Model} Beneficiary of product's revenue can be specified and automatically enforced through Product Token Contract. For example, 1\% of revenue will go toward charity can be strictly enforced since the contract issuance.
 
 \subsubsection{Issuance}
+Similar to Community Token, Community Manager can create Product Token with a specified bonding curve. This curve allows the price of Product Token, denominated in Community Token, to change based on the current total supply. Additionally, Product Token Contract contains three more parameters.
+
+\paragraph{Bonded} The token creator can decide if the Product Token is ``bonded''. That is, whether a user can sell the tokens back to the Product Token Contract at the bonding curve price, potentially with price spread.
+
+\paragraph{Sellable} The token creator can decide if the product token can be bought or sold in BAND's on-chain marketplace.
+
+\paragraph{Transferable} The token creator can also decide if the token ownership can be transferred to other members of the community.
+
+There is one distinction to note: if the Product Token is not bonded, token creator is able to additionally include the pricing variables such as $P_{\mathit{BNDUSD}}$, and the extra variable $\alpha$ representing the conversion rate of how many BAND is worth 1 Community Token, which is computed using the median of medians algorithm~\cite{wiki:mom}, similar to how pricing variables are calculated (See~\cref{sec:on-chain-px-oracle}) to prevent price manipulation. Formally, the value-supply grammar is extended with the following two constructs:
+
+\begin{align*}
+V \leftarrow
+\begin{cases}
+V & \text{Community Token price structure} \\
+p & \text{A pricing variable $P_{\mathit{BNDUSD}}, P_{EURUSD}, ...$} \\
+\alpha & \text{conversion rate of Community Token - BAND}
+\end{cases}
+\end{align*}
+
+For instance, if the creator decides a concert ticket should be priced 1 dollar for the first ticket, 2 dollars for the second ticket, and so on. The pricing function would be $P(s)=  \alpha \times P_{\mathit{BNDUSD}} \times(s+0.5)$. The equation to put into the contract would be the anti-derivative of this equation with respect to s, which is $V(s) = \alpha \times P_{\mathit{BNDUSD}} \times 0.5 \times (s^2+s)$. If a person buys 3 tokens moving from total supply = 3 to 6, he must pay $V(6)-V(3) = 15 \alpha \cdot P_{\mathit{BNDUSD}} $ community token, which is approximately 15 dollars.
+
+This scheme of value-supply equation gives the Community Manager a wide range of possibilities in defining the bonding curve of Product Token. The table below gives a few interesting examples.
+
+\begin{adjustwidth}{-1.74cm}{}
+\begin{center}
+\begin{tabular}{ >{\footnotesize}c | c | c | c }
+Price Model & $P(s)$ & $V(s)$ & {\footnotesize Can be Bonded} \\ \hline
+Fixed price at 1 Comm token & $1$ & $s$ & Yes \\ \hdashline
+Fixed price at 1 BAND token & $P_{\mathit{BNDUSD}}$ & $s \cdot P_{\mathit{BNDUSD}}  $ & No \\ \hdashline
+Fixed price at 1 USD & $\alpha \cdot P_{\mathit{BNDUSD}}$ & $\alpha s \cdot P_{\mathit{BNDUSD}}  $  & No \\   \hdashline
+Linearly increase in terms of BAND & $2s \cdot P_{\mathit{BNDUSD}} \times s$ & $s^2 \cdot P_{\mathit{BNDUSD}} $ & No \\   \hdashline
+Exponentially increase in terms of Comm token & $3s^2$ & $ s^3$ & Yes \\  \hdashline
+\begin{tabular}{@{}c@{}}Exponentially increase in terms of Comm token \\ with initial price of 10 USD\end{tabular} &
+$3s^2 +10 \alpha \cdot  P_{\mathit{BNDUSD}}$ &
+ $ s^3 + 10 \alpha s  \cdot P_{\mathit{BNDUSD}} $ & No
+
+\end{tabular}
+\end{center}
+\end{adjustwidth}
 
 \subsubsection{Redemption}
+Since Product Tokens represent the right to claim real-world products and services from Community Manager, it requires a secure and private way to transact data between on-chain ownership of Product Token and off-chain private data required to claim products and services. For example, customer A needs to send CD token to a community manager sink address on-chain while sending a full name and address along with a signed message to community manager off-chain.
+
+To redeem Product Token, a customer broadcasts a {\tt SPEND} transaction that signs the Product Token with user's provided information and marks it ``spent''. As a result of this transaction, the customer receives a ``receipt'' output that can be used as evidence of the payout. The customer can also attach extra information, such as an encrypted physical address to the receipt. This information can be used as the evidence should any disagreement occur. The Community Manager receives the spent Product Token, and if the Product Token is bonded, Community Manager can send the token back to the Product Token Contract to receive revenue in terms of Community Token.
+
+\begin{figure}[!h]
+\centering
+\begin{tikzpicture}[node distance=7cm]
+\node (node1) [utxo] {
+    owner = Alice \\
+    token = 0x1234 \\
+    amount = 1
+};
+
+\node (node2) [utxo, above right=-1.5cm and 2cm of node1] {
+    owner = Alice \\
+    token = 0x1234 \\
+    amount = 1 \\
+    status = RECEIPT \\
+    data = Alice's address
+};
+
+\node (node3) [utxo, below right=-1.5cm and 2cm of node1] {
+    token = 0x1234 \\
+    amount = 1 \\
+    status = SPENT \\
+};
+\draw [arrow] (node1) -- (node2);
+\draw [arrow] (node1) -- (node3);
+\end{tikzpicture}
+\caption{An action of spending 1 Product Token by Alice. She is able to append her encrypted address to the receipt UTXO. Another UTXO is created for the Community Manager to sell it back for Community Token.}
+\label{fig:utxo-stake}
+\end{figure}
 
 \subsubsection{Beneficiary}
+Community Manager may wish to sell products and allocate a portion of revenue to a beneficiary or multiple beneficiaries. Since revenues are denominated in Community Token, a portion of divisible Community Token can be sent directly to a set of beneficiaries (addresses) specified in the contract. For example, 20\% of all revenues can be sent directly to Record Label Company and 0.5\% is sent to application owner who operates the application on top of the BAND Protocol.
 
-\subsection{Marketplace}
+In the future, when regulatory landscape allows ease of security offering, beneficiary model allows Community Manager to conduct their own fundraising and use beneficiary model to give part of future incomes to contributors. It allows young talented individuals to raise fund by themselves while community is able to invest in the potential of other individuals. For example, a writer may issue a new Community Token where he will sell his digital books and everyone who contribute in the initial stage will receive 50\% of all future revenue attached to the community.
+
+At Product Token Contract creation, the Community Manager must specify addresses of beneficiaries with percentage of revenue ratio. Whenever a withdrawal request is processed, all pending Community Tokens (from buy/sell spread or for Product Token sellback by Community Manager) will be distributed according to the beneficiaries information.
+
+\subsection{Marketplace} \label{sec:marketplace}
+One of the main benefits of tokenized economy is the global liquidity. BAND Protocol establishes a standard marketplace contract for anyone to trustlessly buy and sell Product Tokens. Once there is a matched buyer and seller based on predefined price, Product Token and Community Token (payment) will be automatically swapped. Buyers are certain that seller has the real product while sellers are certain that buyers have the necessary money to purchase.
+
+BAND blockchain supports atomic transfer of value. To do this, a user can convert his UTXO into an \emph{executable-UTXO} by broadcasting a {\tt MAKE\_TRADE} transaction. An executable UTXO is essentially an UTXO with the following added attributes:
+\paragraph{Counter-Product} The product that can be traded with UTXO. This can be any other UTXO token types, including BAND, any Community Token, and any Product Token.
+\paragraph{Equation} The equation specifies amount of counter-product required to transfer ownership of this UTXO. The amount is expressed in terms of an equation that can depends on any of the pricing variables and (prices) of any Community Token. \\
+
+\begin{figure}[!h]
+\centering
+\begin{tikzpicture}[node distance=7cm]
+\node (node1) [utxo] {
+    owner = Alice \\
+    token = 0x1234 \\
+    amount = 20
+};
+
+\node (node2) [utxo, right of=node1] {
+    owner = Alice \\
+    token = 0x1234 \\
+    amount = 20 \\
+    counter = BAND \\
+    eq = $10 \times P_{\mathit{BNDUSD}}$
+};
+
+\draw [arrow] (node1) -- node[anchor=south] {{\tt MAKE\_TRADE}} (node2);
+\end{tikzpicture}
+\caption{An action of converting 20 Community Token to be executable at price 10 USD}
+\label{fig:utxo-stake}
+\end{figure}
+
+If another party agrees to trade, he can send his UTXO to execute with this executable-UTXO. If the amount condition is satisfied, the owner of both  UTXOs are swapped, on chain, in one blockchain operation. The UTXO owner, at any point, can decide to convert his executable-UTXO back to a normal UTXO, essentially cancel the offer to buy/sell products.
+
+\begin{figure}[!h]
+\centering
+\begin{tikzpicture}[node distance=7cm]
+\node (alice-utxo-in) [utxo] {
+    owner = Alice \\
+    token = 0x1234 \\
+    amount = 20 \\
+    counter = BAND \\
+    eq = $10 \times P_{\mathit{BNDUSD}}$
+};
+
+\node (bob-utxo-out) [utxo, right=and 3cm of alice-band-in] {
+    owner = Bob \\
+    token = 0x1234 \\
+    amount = 20 \\
+};
+
+\node (bob-utxo-in) [utxo,below=0.5cm of alice-band-in] {
+    owner = Bob \\
+    token = BAND \\
+    amount = 30
+};
+
+\node (alice-utxo-out) [utxo, right=3cm of bob-utxo-in] {
+    owner = Alice \\
+    token = BAND \\
+    amount = 30
+};
+
+\draw [arrow] (alice-utxo-in) -- (alice-utxo-out);
+\draw [arrow] (bob-utxo-in) -- (bob-utxo-out);
+\end{tikzpicture}
+\caption{On-chain change of ownership of two UTXOs. The executable UTXO is priced at \$10. Note this this atomic swap can only take place when $P_{\mathit{BNDUSD}} = 3$.}
+\end{figure}
+
+Having this executable-UTXO paradigm, one can easily build a marketplace application that visualises easy-to-understand order book for each product-token pair on top of all UTXOs. For instances, if there exist three executable UTXOs of token {\tt 0x1234} to match with BAND and three different prices, the application can aggregate those values as asks of token {\tt 0x1234}. See~\cref{fig:marketplace-ex} as an example.
+
+\begin{figure}[!h]
+\centering
+\begin{tikzpicture}[node distance=5cm]
+\node (node1) [utxo]  {
+    owner = Alice \\
+    token = 0x1234 \\
+    amount = 1 \\
+    counter = BAND \\
+    eq = $10 \times P_{\mathit{BNDUSD}}$
+};
+
+\node (node2) [utxo, right of=node1] {
+    owner = Bob \\
+    token = 0x1234 \\
+    amount = 10 \\
+    counter = BAND \\
+    eq = $90 \times P_{\mathit{BNDUSD}}$
+};
+
+\node (node3) [utxo, right of=node2] {
+    owner = Carol \\
+    token = 0x1234 \\
+    amount = 20 \\
+    counter = BAND \\
+    eq = $190$
+};
+\end{tikzpicture}
+\begin{tabular}{ c | c | c | c | c }
+No & Owner & Size & Price per token (BAND) & Price per token (USD) \\ \hline
+1& Alice & 1 & 10 & 20 \\
+2 & Carol & 20 & 9.5 & 19 \\
+3 &Bob & 10 & 9 & 18 \\
+\end{tabular}
+\caption{There are three executable UTXOs for token {\tt 0x1234} priced at \$10, \$9, and 19 BAND. The figure shows an order book at the state where 1 BAND is priced at \$2.}
+\label{fig:marketplace-ex}
+\end{figure}
 
 \subsection{Subscription Model}
 
