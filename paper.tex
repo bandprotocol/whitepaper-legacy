@@ -667,16 +667,180 @@ No & Owner & Size & Price per token (BAND) & Price per token (USD) \\ \hline
 \caption{There are three executable UTXOs for token {\tt 0x1234} priced at \$10, \$9, and 19 BAND. The figure shows an order book at the state where 1 BAND is priced at \$2.}
 \label{fig:marketplace-ex}
 \end{figure}
+\subsection{Subscription Model} \label{sec:subscription-model}
+BAND Protocol allows subscription business model in the new tokenized economy. A subscription model is generally when customer must pay a fixed amount of fee in a regular interval to have access to products or services. For example, a customer pays \$99 annually for Amazon Prime to get unlimited free shipping from Amazon. Another less straightforward example of subscription is annual membership fee. For example, Real Madrid Club Card costs \$170 annually which entitles card holder to receive a physical membership card, 10\% discount on all future purchases, access to newsletter, access to prize draw, etc.
 
-\subsection{Subscription Model}
+In the BAND Protocol, Community Manager can create a similar subscription business model through a staking contract. Community members must stake a minimum amount of Community Token within certain period to earn the right to access certain products and services similar to a membership card. One notable difference is that community members must stake their tokens with a lock-up period to earn the right during the lock-up period. Once the lock-up period is over, they can either withdraw their token and forfeit future benefit or continue to stake their tokens to continue their benefit. This is different to general subscription model where customers must pay regularly. Note that if Community Managers wish to create a paying subscription model, they can create associated Product Token that has a validity for certain period of time (e.g. non-tradable Amazon Prime Product Token that entitles holder to receive free shipping benefit for one year.)
+
+Community Manager can customize staking contract and benefit offered however they like. Tier system can be created where Community Manager defines minimum staking threshold in order to unlock certain benefits associated with each tier.
+
+While subscription benefits can be customized depending on nature of the community, one standard benefit to subscription is the ability to receive discount on future purchases. Token holders are able to stake their tokens and receive Discount Token which is proportional to the amount of their staked token compared to total staked token in the system. Similar to how normal membership card entitles holder to receive discount on future purchases, token holders are loyal fan who will be rewarded through Discount Token. More detail is described in the subsequent section.
 
 \subsubsection{Staking Contract}
+A staking contract is created together with the creation of the Community Token. The Community Manager defines four parameters in the process:
+\paragraph{Minimum Lockup Time} The minimum period before staked Community Token can be transformed back to unstaked Community Token.
+\paragraph{Discount Interval} The interval where the revenue is aggregated and for which the Discount Token is valid. The Community Manager can choose one of the following choices: one week, two weeks, one month, two months, three months, and six months.
+\paragraph{Ratio of Revenue as Discount} The ratio of revenue in the discount interval that will be distributed to users in form of Discount Token.
+\paragraph{Discount Currency} The currency of Discount Token. This value can be Community Token, BAND token, or fiat currency. \\
+
+At anytime community members are allowed to issue a staking transaction. As a result of the transaction, some amount of their Community Tokens will be transformed into a bonding note. After more than minimum lock-up time has passed, the owner of a bonding note may transform the note back to Community Token.
+
+\begin{figure}[!h]
+\centering
+\begin{tikzpicture}[node distance=7cm]
+\node (node1) [utxo] {
+    owner = Alice \\
+    token = 0x1234 \\
+    amount = 10
+};
+
+\node (node2) [utxo, right of=node1] {
+    owner = Alice \\
+    token = 0x1234 \\
+    staked\_at = 1514764800 \\
+    amount = 10
+};
+
+\draw [arrow] (node1) -- node[anchor=south] {{\tt STAKE}} (node2);
+\end{tikzpicture}
+\caption{An action of staking 10 community token by Alice at epoch 1514764800 (Jan 1, 2018 12:00 AM)}
+\label{fig:community-stake}
+\end{figure}
 
 \subsubsection{Discount Token}
+At every discount interval, community member will be able to request Discount Tokens. The Discount Tokens will be determined by the ratio of the member's total lockup compared to the total lockup in the community and the total revenue of the community in that period. Discount Token will expire in the next discount interval, and a member will be able to request a new set of Discount Token for the next interval. The revenue is computed on chain using the following rules:
 
-\subsection{Attention Contracts}
+\begin{itemize}
+\setlength\itemsep{0em}
+\item For unbonded Product Token, any time Product Token is sold, the revenue is directly added to the community’s revenue pool, after being converted to discount currency at market rate.
+\item For bonded product token, the revenue is computed at any time the Community Manager requests community Token withdrawal to all beneficiaries, after being converted to discount currency at market rate.
+\end{itemize}
 
-\subsection{Service API Contracts}
+Formally, the total value of Discount Token that a user receives, in terms of Community Token, can be written the form of
+\begin{align*}
+D_{i} = \frac{C_{i}}{\Sigma C} \cdot \frac{\alpha_{0}}{\alpha_{t}} \cdot \mu \cdot (R_{\mathit{BONDED}} + R_{\mathit{UNBONDED}})
+\end{align*}
+
+Where $D_{i}$ is the total value Discount Token that user $i$ receives; $C_{i}$ is the total Community Token that user $i$ has staked over the discount interval period; $\alpha_{0}$ is the exchange rate of discount currency -- community token at the time the revenue is generated; $\alpha_{t}$ the same exchange rate at the time the Discount Token is used; $\mu$ is the Ratio of Revenue as Discount; $R_{\mathit{BONDED}}$ and $R_{\mathit{UNBONDED}}$ are the total revenue of bonded and unbonded product tokens respectively.
+
+An unboned product token contract can be set to accept Discount Tokens as a payment. If that is the case, community members can choose to pay (partially or fully) via Discount Tokens that they possess. It is important to note that Discount Tokens are not transferable.
+
+\begin{figure}[!h]
+\centering
+\begin{tikzpicture}
+\node (alice-stake-in) [utxo] {
+    owner = Alice \\
+    token = 0x1234 \\
+    staked\_at = 1514764800 \\
+    amount = 10
+};
+
+\node (alice-stake-out) [utxo, above right=-1.5cm and 2cm of alice-stake-in] {
+    owner = Alice \\
+    token = 0x1234 \\
+    staked\_at = 1514764800 \\
+    amount = 10
+};
+
+\node (alice-discount-out) [utxo, below right=-1.5cm and 2cm of alice-stake-in] {
+    owner = Alice \\
+    token = 0x1234 \\
+    discount = true \\
+    amount = 1
+};
+
+\node (alice-product-out) [utxo, right=2cm of alice-discount-out] {
+    owner = Alice \\
+    token = 0x5678 \\
+    amount = 1
+};
+
+\node (product-before) [contract,below=0.3cm of alice-discount-out] {
+    addr = 0x5678 \\
+    name = Product \\
+    comm = 0x1234 \\
+    supply = 100 \\
+    eq = $1$ \\
+    spread = None \\
+    max\_supply = None \\
+    discount\_ok = true
+};
+
+\node (product-after) [contract,right=2cm of product-before] {
+    addr = 0x5678 \\
+    name = Product \\
+    comm = 0x1234 \\
+    supply = 101 \\
+    eq = $1$ \\
+    spread = None \\
+    max\_supply = None \\
+    discount\_ok = true
+};
+
+\draw [arrow] (alice-stake-in) -- (alice-stake-out);
+\draw [arrow] (alice-stake-in) -- (alice-discount-out);
+\draw [arrow] (alice-discount-out) -- (alice-product-out);
+\draw [arrow] (product-before) -- (product-after);
+\end{tikzpicture}
+\caption{An action of withdraw Discount Token from the community contract and spend it to buy a Product Token. Notice that the staked Community Token does not get spent at all.}
+\label{fig:discount-full}
+\end{figure}
+
+\subsection{Attention Contracts} \label{sec:attention-contracts}
+Attention curation market can be created in BAND tokenized economy. Since many Community Managers will gather large followers, many loyal followers will compete for the scarce attention of the Community Manager. BAND Protocol standardizes the way attention curation can occur in the protocol by allowing member of the communities to send Attention Tokens, a subclass of Product Token, and bond them to particular element such as post, comment, or any other elements as specified by the application. For example, an application built on top of BAND Protocol can easily create an Instagram-like application where followers can buy Attention Token and bond them to their comment similar to casting their vote. The application will then show top three comments so that Community Manager can see and interact with top comments who have the most amount of Attention Tokens bonded to them. The value of attention will depend on popularity of the Community Manager and amount of interaction received. Thus, Community Managers have an incentive to create an engaging community as it becomes a new monetization tool. Community Manager can finally monetize their loyal fan base and community.
+
+On the protocol level, the manager creates an attention contract with arbitrary text information containing the purpose of this attention contract. Anyone can participate in this attention curation contract by sending Attention Product Token to the attention contract address with an arbitrary ``key'' information, likely their username on the application layer. The blockchain allows anyone to query the top keys with largest amount of contribution. This way the data is kept transparently forever on chain. As an example, the Community Manager of an Instragram-like website may create an attention contract for each image post. Users can send their Community Tokens to this contract to ``like'' the image. The application can query the blockchain to know the top contributed people to this image and reward them accordingly. \Cref{fig:attention-flow} shows the flow of attention curation contract.
+
+\begin{figure}[!h]
+\centering
+\begin{tikzpicture}
+\node (alice-band-in) [utxo] {
+    owner = Alice \\
+    token = 0x1234 \\
+    amount = 2
+};
+
+\node (attention-before) [contract,below=1cm of alice-band-in] {
+    comm-addr = 0x1234 \\
+    name = Leaderboard \\
+    ranking:\\
+    Bob = 10 \\
+    Carol = 8 \\
+    Alice = 7
+};
+
+\node (alice-band-out) [utxo, right=3cm of alice-band-in] {
+    [spent]
+};
+
+\node (attention-after) [contract,right=3cm of attention-before] {
+    comm-addr = 0x1234 \\
+    name = Leaderboard \\
+    ranking:\\
+    Bob = 10 \\
+    Alice = 9 \\
+    Carol = 8
+};
+
+\draw [arrow] (alice-band-in) -- (alice-band-out);
+\draw [arrow] (attention-before) -- (attention-after);
+\end{tikzpicture}
+\caption{An action of sending 2 Community Token from Alice to an attention contract too boost her rank in the leaderboard. Her Community Token gets spent in the process.}
+\label{fig:attention-flow}
+\end{figure}
+
+\subsection{Service API Contracts} \label{sec:permission-contracts}
+A service API contract is a standalone contract issued by Community Manager. It describes a condition that a community member must satisfy in order to use a particular service in the community. For example, a musician group community manager may define a service API contract for accessing free music streaming as ``the user must have at least 10 music streaming Product Token or stake at least 100 Community Token''. Formally a service contract contains one or more of the following conditions joint with binary logical operators.
+
+\begin{itemize}
+\setlength\itemsep{0em}
+\item The user must own at least $x$ amount of Product Token at address $addr$
+\item The user must has at least $x$ amount of Community Token at address $addr$ on stake
+\end{itemize}
+
+Once the service API is created, anyone can query the blockchain asking if a particular user is entitled to a particular service based on the service contract. Service APIs add more transparency to the network since anyone can check if they satisfy a condition that allows them to use a service.
+
+\pagebreak
 
 \section{Client Layer}
 One of the main roadblocks of cryptocurrency's mass adoption is usability. Non-technical users struggle to understand and interact directly with blockchain layer and public-private keys. User-friendly applications are necessary to bring benefit of BAND Protocol to general mass consumers even if they are not familiar with its technical aspect. Campbase will be the first consumer application developed in conjunction with BAND Protocol. Since BAND Protocol is an open, permissionless blockchain protocol, anyone can build client application on top of the protocol.
