@@ -42,7 +42,7 @@
         \small\href{mailto:swit@bandprotocol.com}
             {\nolinkurl{swit@bandprotocol.com}}
     }
-\date{\today\\\small Public Draft Version 1.1.0}
+\date{\today\\\small Public Draft Version 1.1.1}
 \begin{document}
 
 \maketitle
@@ -326,7 +326,7 @@ P(s) &= \frac{d}{ds}V(s) & \text{; or in other words} \\
 V(s) &= \int_{0}^{s} P(s) ds
 \end{align*}
 
-The total price of buying $x$ Community Tokens at total supply $s$ is thus $V(s+x)-V(x)$, or $\frac{V(s+x)-V(x)}{x}$ per token on average. As an example, if the Community Manager would like to have the price-supply equation $P(s) = 2s + 10$, he must specify the on-chain value-supply equation $V(s) = s^2 + 10s$. If community member would like to buy 3 tokens when the current supply is 100, they must pay $V(103)-V(100) =639$ BAND, or 213 BAND per token. Notice that this is consistent with the price-supply equation and works even when a person wants to buy non-integral amount of Community Token.
+The total price of buying $x$ Community Tokens at total supply $s$ is thus $V(s+x)-V(s)$, or $\frac{V(s+x)-V(s)}{x}$ per token on average. As an example, if the Community Manager would like to have the price-supply equation $P(s) = 2s + 10$, he must specify the on-chain value-supply equation $V(s) = s^2 + 10s$. If community member would like to buy 3 tokens when the current supply is 100, they must pay $V(103)-V(100) =639$ BAND, or 213 BAND per token. Notice that this is consistent with the price-supply equation and works even when a person wants to buy non-integral amount of Community Token.
 
 BAND protocol allows flexibility in the equation. Specifically, any equation that can be described in terms of recursive applications of common unary and binary expressions on the current total supply and constant numbers can be encoded on chain. The grammar of value-supply equation can be formalized as:
 \begin{align*}
