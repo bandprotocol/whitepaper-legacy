@@ -2,6 +2,7 @@
 *.bbl
 *.out
 *.aux
-*.pdf
 *.blg
 *.toc
+.DS_Store
+paper.pdf
